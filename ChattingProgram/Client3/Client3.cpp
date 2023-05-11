@@ -1,6 +1,5 @@
 #pragma comment(lib, "ws2_32.lib")
-
-#include <WinSock2.h> //Winsock Çì´õÆÄÀÏ include. WSADATA µé¾îÀÖÀ½.
+#include <WinSock2.h> //Winsock í—¤ë”íŒŒì¼ include. WSADATA ë“¤ì–´ìˆìŒ.
 #include <WS2tcpip.h>
 #include <string>
 #include <sstream>
@@ -8,18 +7,13 @@
 #include <thread>
 #include <chrono>
 #include <iomanip>
-
 #define MAX_SIZE 1024
-
 using std::cout; using std::cin; using std::endl; using std::string; using std::to_string;
-
 char buf[MAX_SIZE] = { };
 SOCKET client_sock;
 string user_id;
 string user_pw;
 string nickname;
-int chat_in = 0;
-
 string get_time()
 {
     using namespace std::chrono;
@@ -29,16 +23,12 @@ string get_time()
     system_clock::time_point t2 = system_clock::from_time_t(t1);
     if (t2 > tp)
         t1 = system_clock::to_time_t(tp - seconds(1));
-
     tm tm{};
     localtime_s(&tm, &t1);
-
     str << std::put_time(&tm, "%Y%m%d%H%M%S") << std::setfill('0') << std::setw(3)
         << (std::chrono::duration_cast<std::chrono::milliseconds>(tp.time_since_epoch()).count() % 1000);
-
     return str.str();
 }
-
 void buf_reset(char* buf)
 {
     while (*buf)
@@ -47,20 +37,13 @@ void buf_reset(char* buf)
         buf++;
     }
 }
-
 int chat_recv()
 {
     while (1)
     {
         ZeroMemory(&buf, MAX_SIZE);
         if (recv(client_sock, buf, MAX_SIZE, 0) > 0)
-        {
-            for (int i = 0; i < MAX_SIZE; i++)
-            {
-                cout << "\b";
-            }
-            cout << buf << endl;
-        }
+            cout << buf;
         else
         {
             cout << "Server Off" << endl;
@@ -68,24 +51,19 @@ int chat_recv()
         }
     }
 }
-
 int main()
 {
     WSADATA wsa;
-
-    // Winsock¸¦ ÃÊ±âÈ­ÇÏ´Â ÇÔ¼ö. MAKEWORD(2, 2)´Â WinsockÀÇ 2.2 ¹öÀüÀ» »ç¿ëÇÏ°Ú´Ù´Â ÀÇ¹Ì.
-    // ½ÇÇà¿¡ ¼º°øÇÏ¸é 0À», ½ÇÆĞÇÏ¸é ±× ÀÌ¿ÜÀÇ °ªÀ» ¹İÈ¯.
-    // 0À» ¹İÈ¯Çß´Ù´Â °ÍÀº WinsockÀ» »ç¿ëÇÒ ÁØºñ°¡ µÇ¾ú´Ù´Â ÀÇ¹Ì.
+    // Winsockë¥¼ ì´ˆê¸°í™”í•˜ëŠ” í•¨ìˆ˜. MAKEWORD(2, 2)ëŠ” Winsockì˜ 2.2 ë²„ì „ì„ ì‚¬ìš©í•˜ê² ë‹¤ëŠ” ì˜ë¯¸.
+    // ì‹¤í–‰ì— ì„±ê³µí•˜ë©´ 0ì„, ì‹¤íŒ¨í•˜ë©´ ê·¸ ì´ì™¸ì˜ ê°’ì„ ë°˜í™˜.
+    // 0ì„ ë°˜í™˜í–ˆë‹¤ëŠ” ê²ƒì€ Winsockì„ ì‚¬ìš©í•  ì¤€ë¹„ê°€ ë˜ì—ˆë‹¤ëŠ” ì˜ë¯¸.
     int code = WSAStartup(MAKEWORD(2, 2), &wsa);
-
     if (!code) {
-        client_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP); // 
-
+        client_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP); //
         SOCKADDR_IN client_addr = {};
         client_addr.sin_family = AF_INET;
         client_addr.sin_port = htons(5476);
         InetPton(AF_INET, TEXT("127.0.0.1"), &client_addr.sin_addr);
-
         while (1)
         {
             if (!connect(client_sock, (SOCKADDR*)&client_addr, sizeof(client_addr)))
@@ -96,9 +74,11 @@ int main()
                 break;
             }
             else
+            {
                 cout << "Connecting..." << endl;
+                break;
+            }
         }
-
         while (1)
         {
             int option = 0;
@@ -147,7 +127,7 @@ int main()
                 }
                 buf_reset(buf);
                 cout << "Password: ";
-                string pw = "";
+                cin >> user_pw;
                 send(client_sock, user_pw.c_str(), MAX_SIZE, 0);
                 cout << "Nickname: ";
                 cin >> nickname;
@@ -157,24 +137,22 @@ int main()
     }
     std::thread th2(chat_recv);
     int i = 0;
-
     while (1)
     {
         string text;
-        int accept = 0;
         cin >> text;
         text += get_time();
-        cout << "\033[F";
-        for (int i = 0; i < MAX_SIZE; i++)
-        {
-            cout << " ";
-            cout << "\b";
-        }
         send(client_sock, text.c_str(), strlen(text.c_str()), 0);
+        cout << "\033[F";
+        for (int i = 0; i < text.size(); i++)
+            cout << "\b";
+        for (int i = 0; i < text.size(); i++)
+            cout << " ";
+        for (int i = 0; i < text.size(); i++)
+            cout << "\b";
     }
     th2.join();
     closesocket(client_sock);
-
     WSACleanup();
     return 0;
 }

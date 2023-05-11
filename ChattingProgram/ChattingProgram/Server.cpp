@@ -4,21 +4,38 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <mysql/jdbc.h>
+
+using std::cout; using std::cin; using std::endl; using std::string; using std::to_string; using std::vector;
+
 #define MAX_SIZE 1024
 #define MAX_CLIENT 3
-using std::cout; using std::cin; using std::endl; using std::string; using std::to_string; using std::vector;
+
+const string sql_server = "tcp://127.0.0.1:3306"; // ë°ì´í„°ë² ì´ìŠ¤ ì£¼ì†Œ (3306: MySQL ë°ì´í„°ë² ì´ìŠ¤ ê¸°ë³¸ í¬íŠ¸ ë²ˆí˜¸)
+const string username = "root"; // ë°ì´í„°ë² ì´ìŠ¤ ì‚¬ìš©ì
+const string password = "abcd1234!"; // ë°ì´í„°ë² ì´ìŠ¤ ì ‘ì† ë¹„ë°€ë²ˆí˜¸
+
+sql::mysql::MySQL_Driver* driver; // ì¶”í›„ í•´ì œí•˜ì§€ ì•Šì•„ë„ Connector/C++ê°€ ìë™ìœ¼ë¡œ í•´ì œí•´ ì¤Œ
+sql::Connection* con;
+sql::Statement* stmt;
+sql::PreparedStatement* pstmt;
+sql::ResultSet* result;
+
 struct SOCKET_INFO
 {
     SOCKET sck;
     string user_id;
     string nickname;
 };
+
 vector<SOCKET_INFO> sck_list;
 SOCKET_INFO server_sock;
+
+vector<vector<string>> chat_log_list;
+
 int client_count = 0;
 int unclient_count = 0;
-vector<vector<string>> account_list = { {"abc", "1234", "ABC", "0"}, {"bcd", "2345", "BCD", "0"} }; //id, pw, nickname, loginlog
-vector<vector<string>> chat_log_list;
+
 int find_account(int mode, string user_id, string user_pw);
 void in_account(string user_id, string user_pw, string nickname);
 void server_init();
@@ -26,49 +43,97 @@ void add_client(int un_clinet);
 string recv_send_msg(int mode, SOCKET sck, string msg);
 void recv_msg(int idx);
 void del_client(int idx);
-int find_account(int mode, string user_id, string user_pw) //mode = 1 find id / mode = 2 find id, pw / mode = 3 find nickname / mode = 4 log out
+
+int find_account(int mode, string user_id, string user_pw) //mode = 1 find id / mode = 2 find id, pw / mode = 3 ë¡œê·¸ì•„ì›ƒ
 {
-    for (int i = 0; i < account_list.size(); i++)
-        if (user_id == account_list[i][0] && mode == 1)
-            return 1;
-        else if (user_id == account_list[i][0] && mode == 2)
+    try 
+    {
+        driver = sql::mysql::get_mysql_driver_instance();
+        con = driver->connect(sql_server, username, password);
+    }
+    catch (sql::SQLException& e) 
+    {
+        cout << "Could not connect to server. Error message: " << e.what() << endl;
+        exit(1);
+    }
+    string find_id, find_pw, nickname = "";
+
+    con->setSchema("chattings");
+    pstmt = con->prepareStatement("SELECT * FROM users;");
+    result = pstmt->executeQuery();
+
+    if (mode == 1) 
+    {
+        while (result->next()) 
         {
-            if (user_pw == account_list[i][1])
+            find_id = result->getString("user_id");
+            if (find_id == user_id) 
             {
-                if (account_list[i][3] == "0")
-                {
-                    account_list[i][3] = "1";
-                    return 1;
-                }
-                else
-                    return 0;
+                return 1;
             }
         }
-        else if (user_id == account_list[i][0] && mode == 3)
-            return i;
-        else if (user_id == account_list[i][0] && mode == 4)
+    }
+    else if (mode == 2) 
+    {
+        while (result->next()) 
         {
-            account_list[i][3] = "0";
-            return 0;
+
+            find_id = result->getString("user_id");
+            find_pw = result->getString("user_pw");
+            if (user_id == find_id && find_pw == user_pw)
+            {
+                pstmt = con->prepareStatement("UPDATE users SET login = ? WHERE user_id = ?");
+                pstmt->setInt(1, 1);
+                pstmt->setString(2, user_id);
+                pstmt->executeQuery();
+                return 1;
+            }
         }
+    }
+    else if (mode == 3)
+    {
+        pstmt = con->prepareStatement("UPDATE users SET login = ? WHERE user_id = ?");
+        pstmt->setInt(1, 0);
+        pstmt->setString(2, user_id);
+        pstmt->executeQuery();
+    }
+
     return 0;
 }
-string get_nickname(int idx)
+
+string get_nickname(string user_id)
 {
-    return account_list[idx][2];
+    string find_id, nickname = "";
+    con->setSchema("chattings");
+    pstmt = con->prepareStatement("SELECT * FROM users;");
+    result = pstmt->executeQuery();
+
+    while (result->next()) 
+    {
+        find_id = result->getString("user_id");
+        if (user_id == find_id)
+        {
+            nickname = result->getString("nickname");
+            return nickname;
+        }
+    }
+    return "";
 }
+
 void in_account(string user_id, string user_pw, string nickname)
 {
-    try {
+    try 
+    {
         driver = sql::mysql::get_mysql_driver_instance();
-        con = driver->connect(sql_server, username, password); // MySQL µ¥ÀÌÅÍº£ÀÌ½º ¿¬°á °´Ã¼
+        con = driver->connect(sql_server, username, password); // MySQL ë°ì´í„°ë² ì´ìŠ¤ ì—°ê²° ê°ì²´
     }
-    catch (sql::SQLException& e) {
+    catch (sql::SQLException& e) 
+    {
         cout << "Could not connect to server. Error message: " << e.what() << endl;
         exit(1);
     }
     con->setSchema("chattings");
-    // db ÇÑ±Û ÀúÀåÀ» À§ÇÑ ¼ÂÆÃ
+
     stmt = con->createStatement();
     pstmt = con->prepareStatement("INSERT INTO users(user_id, user_pw, nickname, login) VALUES(?,?,?,?)");
     pstmt->setString(1, user_id);
@@ -76,20 +141,22 @@ void in_account(string user_id, string user_pw, string nickname)
     pstmt->setString(3, nickname);
     pstmt->setInt(4, 0);
     pstmt->execute();
-    std::cout << "È¸¿ø°¡ÀÔ ¿Ï·áµÇ¾ú½À´Ï´Ù." << endl;
 }
 string in_chat_log(string user_id, char* chat_log) //chat = chat + time(ex: 20230507094224828)
 {
+    char* chat_log_p = &*chat_log;
     int j = 0;
     string time = "";
     string time_log = "";
     while (*chat_log)
         chat_log++;
     chat_log -= 17;
+
     while (*chat_log)
     {
         time.push_back(*chat_log);
         time_log.push_back(*chat_log);
+        *chat_log = 0;
         chat_log++;
         switch (j)
         {
@@ -116,18 +183,14 @@ string in_chat_log(string user_id, char* chat_log) //chat = chat + time(ex: 2023
         }
         j++;
     }
-    chat_log -= 16;
-    while (*chat_log)
-    {
-        if (*chat_log)
-            *chat_log = 0;
-        chat_log--;
-        *chat_log = 0;
-        chat_log++;
-    }
+    string sql_chat_log = string(chat_log_p);
+    vector<string> v = { time, user_id, sql_chat_log };
+    chat_log_list.push_back(v);
+
     return time;  //2023-05-07 09:42:24
 }
-int main() {
+int main() 
+{
     WSADATA wsa;
     int code = WSAStartup(MAKEWORD(2, 2), &wsa);
     if (!code)
@@ -197,7 +260,7 @@ void add_client(int un_client)
                     {
                         recv_send_msg(2, new_client.sck, "logsu");
                         new_client.user_id = user_id;
-                        new_client.nickname = get_nickname(find_account(3, user_id, ""));
+                        new_client.nickname = get_nickname(user_id);
                         recv_send_msg(2, new_client.sck, new_client.nickname);
                         break;
                     }
@@ -235,7 +298,7 @@ void add_client(int un_client)
         }
     }
     cout << "[Log] Unknown " << un_client << " has entered as " << new_client.user_id << endl;
-    sck_list.push_back(new_client); // client Á¤º¸¸¦ ´ã´Â sck_list ¹è¿­¿¡ »õ·Î¿î client Ãß°¡
+    sck_list.push_back(new_client); // client ì •ë³´ë¥¼ ë‹´ëŠ” sck_list ë°°ì—´ì— ìƒˆë¡œìš´ client ì¶”ê°€
     recv_send_msg(2, new_client.sck, "[Log] ID " + new_client.user_id + " Connected" + "\n");
     std::thread th(recv_msg, client_count);
     client_count++;
@@ -266,7 +329,7 @@ string recv_send_msg(int mode, SOCKET sck, string msg)
     }
     else if (mode == 3)
     {
-        for (int i = 0; i < client_count; i++) // Á¢¼ÓÇØ ÀÖ´Â ¸ğµç client¿¡°Ô ¸Ş½ÃÁö Àü¼Û
+        for (int i = 0; i < client_count; i++) // ì ‘ì†í•´ ìˆëŠ” ëª¨ë“  clientì—ê²Œ ë©”ì‹œì§€ ì „ì†¡
             send(sck_list[i].sck, msg.c_str(), MAX_SIZE, 0);
         return "";
     }
@@ -274,7 +337,7 @@ string recv_send_msg(int mode, SOCKET sck, string msg)
     {
         for (int i = 0; i < chat_log_list.size(); i++)
         {
-            msg = chat_log_list[i][0] + " " + chat_log_list[i][1] + " " + chat_log_list[i][2] + "\n";
+            msg = chat_log_list[i][0] + " " + chat_log_list[i][1] + ": " + chat_log_list[i][2] + "\n";
             send(sck, msg.c_str(), MAX_SIZE, 0);
         }
         return "";
