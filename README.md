@@ -57,19 +57,22 @@
 데이터베이스
 
 ### chattings 테이블 구조
+![image](https://github.com/bongseok-choi/socket-project/assets/82445853/a36c9923-abe2-461a-b230-12a619e7ccca)
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/d9957872-870a-4192-8268-e827f410f904/Untitled.png)
+
 
 ### Users
 
 유저 테이블에는 회원가입 시 클라이언트의 정보를 저장하기 위해 아이디와 패스워드 그리고 닉네임을 저장한다. 그리고 사용자가 로그인을 한 상태인지 알기 위해 0과 1로 구별하기 위해 로그인 필드도 생성하였다.
+![image](https://github.com/bongseok-choi/socket-project/assets/82445853/4b9aedc0-53f8-4005-9280-728a82c6cbd4)
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/6b57d182-c7a8-41bb-91ea-7cb4a00fae95/Untitled.png)
+
 
 ### Chatting
 
 채팅 테이블에는 채팅을 입력 시 시간을 저장하기 위해 time 필드를 넣었고, 어떤 유저가 채팅을 쳤는지 구별하기 위해 유저 아이디를 넣었고, 대화 내용들을 저장하기 로그 필드를 생성하였다.
 
-  
+  ![image](https://github.com/bongseok-choi/socket-project/assets/82445853/ebc73edb-8d3e-480c-a045-ec4475f8f70c)
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/cb2c77da-7cef-4aba-b970-d521cd00563f/Untitled.png)
+
+
