@@ -12,11 +12,11 @@
 - 서버는 MySQL과 연동하여 데이터베이스 활용 능력을 기르고, C++을 사용해서 추가 기능을 구현함으로써 개발자의 역량을 향상시켰습니다.
 
 ## 2. 업무 분담
-기획: @namwlee99   
-서버 개발: @namwlee99   
-클라이언트 개발: @bongseok-choi   
-소캣 처리 및 채팅 송수신 개발: @namwlee99   
-데이터베이스 설계 및 구현: @bongseok-choi
+기획: [namwlee99](https://github.com/namwlee99)   
+서버 개발: [namwlee99](https://github.com/namwlee99)   
+클라이언트 개발: [bongseok-choi](https://github.com/bongseok-choi)
+소캣 처리 및 채팅 송수신 개발: [namwlee99](https://github.com/namwlee99)  
+데이터베이스 설계 및 구현: [bongseok-choi](https://github.com/bongseok-choi)
 
 ### 동작방식
 1. 클라이언트와 서버 접속
